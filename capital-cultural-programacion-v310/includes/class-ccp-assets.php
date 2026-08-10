@@ -64,6 +64,7 @@ final class CCP_Assets {
 
 		$is_plugin_screen = CCP_Post_Type::POST_TYPE === $screen->post_type
 			|| false !== strpos( $screen->id, 'ccp-ayuda-shortcodes' )
+			|| false !== strpos( $screen->id, 'ccp-ajustes-slider' )
 			|| false !== strpos( $screen->id, CCP_Taxonomies::TAX_ESPACIO )
 			|| false !== strpos( $screen->id, CCP_Taxonomies::TAX_CATEGORIA );
 
@@ -76,6 +77,14 @@ final class CCP_Assets {
 			CCP_PLUGIN_URL . 'assets/css/admin.css',
 			array(),
 			CCP_VERSION
+		);
+
+		wp_enqueue_script(
+			'ccp-admin',
+			CCP_PLUGIN_URL . 'assets/js/admin.js',
+			array(),
+			CCP_VERSION,
+			true
 		);
 	}
 }

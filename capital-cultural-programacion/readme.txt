@@ -4,7 +4,7 @@ Tags: museos, cultura, agenda, shortcode, santa fe
 Requires at least: 6.5
 Tested up to: 6.6
 Requires PHP: 8.0
-Stable tag: 2.1.7
+Stable tag: 1.0.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -282,8 +282,7 @@ Slider para el inicio:
 * Enlace externo: opcional.
 * Texto del botón externo: opcional, por defecto "Más información".
 * Destacar propuesta: opcional.
-* Muestra principal: opcional, permite ubicar una actividad inmediatamente antes de la muestra en la que sucede.
-* Estado manual: Automático, Próximamente, Activa, Finalizada, Permanente, Suspendida o Reprogramada.
+* Estado manual: Automático, Próximamente, Activa, Ya sucedió, Permanente, Suspendida o Reprogramada.
 
 == Ordenamiento ==
 
@@ -294,9 +293,9 @@ Las propuestas publicadas se muestran siempre, incluidas las históricas. El ord
 3. Permanentes.
 4. Reprogramadas.
 5. Suspendidas.
-6. Finalizadas.
+6. Ya sucedieron.
 
-Dentro de cada grupo aparecen primero las destacadas. Luego se ordenan por fecha de inicio, salvo las finalizadas, que se ordenan por fecha final descendente. Las actividades vinculadas a una muestra aparecen inmediatamente antes de su muestra principal. Si no se selecciona una relación, las actividades de un día se vinculan automáticamente cuando suceden dentro de las fechas de una muestra del mismo museo.
+Dentro de cada grupo aparecen primero las destacadas. Luego se ordenan por fecha de inicio, salvo las finalizadas, que se ordenan por fecha final descendente.
 
 == Agregar nuevos espacios culturales ==
 

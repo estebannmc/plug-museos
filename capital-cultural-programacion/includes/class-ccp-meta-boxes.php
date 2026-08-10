@@ -85,7 +85,6 @@ final class CCP_Meta_Boxes {
 			'_ccp_enlace'        => (string) get_post_meta( $post->ID, '_ccp_enlace', true ),
 			'_ccp_texto_boton'   => (string) get_post_meta( $post->ID, '_ccp_texto_boton', true ),
 			'_ccp_estado_manual' => (string) get_post_meta( $post->ID, '_ccp_estado_manual', true ),
-			'_ccp_muestra_principal' => absint( get_post_meta( $post->ID, '_ccp_muestra_principal', true ) ),
 		);
 
 		if ( '' === $values['_ccp_texto_boton'] ) {
@@ -107,19 +106,6 @@ final class CCP_Meta_Boxes {
 				<label for="ccp-fecha-fin"><?php esc_html_e( 'Fecha de finalización', 'capital-cultural-programacion' ); ?></label>
 				<input id="ccp-fecha-fin" type="date" name="_ccp_fecha_fin" value="<?php echo esc_attr( $values['_ccp_fecha_fin'] ); ?>">
 				<span class="description"><?php esc_html_e( 'Dejala vacía cuando la propuesta no tenga una fecha de cierre definida.', 'capital-cultural-programacion' ); ?></span>
-			</p>
-			<p class="ccp-admin-field">
-				<label for="ccp-muestra-principal"><?php esc_html_e( 'Muestra principal', 'capital-cultural-programacion' ); ?></label>
-				<select id="ccp-muestra-principal" name="_ccp_muestra_principal">
-					<option value=""><?php esc_html_e( 'Sin vincular', 'capital-cultural-programacion' ); ?></option>
-					<?php foreach ( $this->get_available_shows( $post->ID ) as $show ) : ?>
-						<?php $space_name = CCP_Taxonomies::get_first_term_name( $show->ID, CCP_Taxonomies::TAX_ESPACIO ); ?>
-						<option value="<?php echo absint( $show->ID ); ?>" <?php selected( $values['_ccp_muestra_principal'], $show->ID ); ?>>
-							<?php echo esc_html( $show->post_title . ( $space_name ? ' — ' . $space_name : '' ) ); ?>
-						</option>
-					<?php endforeach; ?>
-				</select>
-				<span class="description"><?php esc_html_e( 'Opcional. Vinculá una actividad para que aparezca inmediatamente antes de esta muestra.', 'capital-cultural-programacion' ); ?></span>
 			</p>
 			<p class="ccp-admin-field">
 				<label for="ccp-horarios"><?php esc_html_e( 'Horarios', 'capital-cultural-programacion' ); ?></label>
@@ -221,7 +207,6 @@ final class CCP_Meta_Boxes {
 		update_post_meta( $post_id, '_ccp_texto_boton', $this->posted_text( '_ccp_texto_boton', __( 'Más información', 'capital-cultural-programacion' ) ) );
 		update_post_meta( $post_id, '_ccp_destacada', isset( $_POST['_ccp_destacada'] ) ? '1' : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		update_post_meta( $post_id, '_ccp_estado_manual', $this->posted_status() );
-		$this->save_parent_show( $post_id );
 
 		$this->save_single_term( $post_id, CCP_Taxonomies::TAX_ESPACIO, 'ccp_espacio' );
 		$this->save_single_term( $post_id, CCP_Taxonomies::TAX_CATEGORIA, 'ccp_categoria' );
@@ -437,52 +422,6 @@ final class CCP_Meta_Boxes {
 		$options = CCP_Status::manual_options();
 
 		return isset( $options[ $value ] ) ? $value : 'automatico';
-	}
-
-	/**
-	 * Returns the shows available as parent proposals.
-	 *
-	 * @param int $current_post_id Current proposal ID.
-	 * @return \WP_Post[]
-	 */
-	private function get_available_shows( int $current_post_id ): array {
-		return get_posts(
-			array(
-				'post_type'      => CCP_Post_Type::POST_TYPE,
-				'post_status'    => array( 'publish', 'draft', 'pending', 'private' ),
-				'posts_per_page' => -1,
-				'post__not_in'   => array( $current_post_id ),
-				'orderby'        => 'title',
-				'order'          => 'ASC',
-				'tax_query'      => array(
-					array(
-						'taxonomy' => CCP_Taxonomies::TAX_CATEGORIA,
-						'field'    => 'slug',
-						'terms'    => array( 'muestra' ),
-					),
-				),
-			)
-		);
-	}
-
-	/**
-	 * Saves and validates the optional parent show relation.
-	 *
-	 * @param int $post_id Proposal ID.
-	 */
-	private function save_parent_show( int $post_id ): void {
-		$parent_id = isset( $_POST['_ccp_muestra_principal'] ) ? absint( $_POST['_ccp_muestra_principal'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing
-		if (
-			$parent_id > 0 &&
-			$parent_id !== $post_id &&
-			CCP_Post_Type::POST_TYPE === get_post_type( $parent_id ) &&
-			has_term( 'muestra', CCP_Taxonomies::TAX_CATEGORIA, $parent_id )
-		) {
-			update_post_meta( $post_id, '_ccp_muestra_principal', $parent_id );
-			return;
-		}
-
-		delete_post_meta( $post_id, '_ccp_muestra_principal' );
 	}
 
 	/**

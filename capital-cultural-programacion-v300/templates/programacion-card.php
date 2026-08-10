@@ -6,6 +6,7 @@
  */
 
 use CapitalCultural\Programacion\CCP_Date_Formatter;
+use CapitalCultural\Programacion\CCP_Meta_Boxes;
 use CapitalCultural\Programacion\CCP_Status;
 use CapitalCultural\Programacion\CCP_Taxonomies;
 
@@ -23,11 +24,13 @@ $date_text     = CCP_Date_Formatter::format_range(
 $excerpt       = has_excerpt( $post_id ) ? get_the_excerpt( $post_id ) : wp_trim_words( wp_strip_all_tags( $post->post_content ), 24 );
 $category_name = $category ? $category->name : '';
 $category_tag  = $category_name && function_exists( 'mb_strtoupper' ) ? mb_strtoupper( $category_name, 'UTF-8' ) : strtoupper( $category_name );
+$image_style   = CCP_Meta_Boxes::image_position_style( $post_id );
 $thumbnail     = get_the_post_thumbnail(
 	$post_id,
 	'medium_large',
 	array(
 		'class'    => 'ccp-card__image',
+		'style'    => $image_style,
 		'loading'  => 'lazy',
 		'decoding' => 'async',
 	)
@@ -39,7 +42,7 @@ $thumbnail     = get_the_post_thumbnail(
 			<?php if ( $thumbnail ) : ?>
 				<?php echo $thumbnail; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 			<?php else : ?>
-				<span class="ccp-card__placeholder" role="img" aria-label="<?php echo esc_attr( get_the_title( $post_id ) ); ?>">
+				<span class="ccp-card__placeholder" role="img" aria-label="<?php echo esc_attr( get_the_title( $post_id ) ); ?>" style="<?php echo esc_attr( $image_style ); ?>">
 					<span><?php esc_html_e( 'Capital Cultural', 'capital-cultural-programacion' ); ?></span>
 				</span>
 			<?php endif; ?>

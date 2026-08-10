@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Capital Cultural – Programación de Museos
  * Description: Gestión centralizada de muestras, actividades, talleres y cursos de los museos y espacios culturales de la ciudad de Santa Fe.
- * Version: 2.1.7
+ * Version: 1.0.0
  * Author: Esteban Maximiliano Córdoba
  * Text Domain: capital-cultural-programacion
  * Domain Path: /languages
@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CCP_VERSION', '2.1.7' );
+define( 'CCP_VERSION', '1.0.0' );
 define( 'CCP_PLUGIN_FILE', __FILE__ );
 define( 'CCP_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'CCP_PLUGIN_URL', plugin_dir_url( __FILE__ ) );

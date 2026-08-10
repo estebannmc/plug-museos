@@ -30,10 +30,9 @@ $category_name = $category ? $category->name : '';
 $category_tag = $category_name && function_exists( 'mb_strtoupper' ) ? mb_strtoupper( $category_name, 'UTF-8' ) : strtoupper( $category_name );
 $image        = get_the_post_thumbnail(
 	$post_id,
-	'full',
+	'large',
 	array(
 		'class'    => 'ccp-modal__image',
-		'sizes'    => '(max-width: 900px) calc(100vw - 24px), 42vw',
 		'loading'  => 'lazy',
 		'decoding' => 'async',
 	)

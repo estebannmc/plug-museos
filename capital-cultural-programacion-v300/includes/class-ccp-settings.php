@@ -37,7 +37,7 @@ final class CCP_Settings {
 			'slider_pause_hover' => true,
 			'slider_limit'       => -1,
 			'slider_categories'  => array(),
-			'slider_statuses'    => array( 'activa' ),
+			'slider_statuses'    => array( 'activa', 'proximamente' ),
 			'slider_title'       => '',
 		);
 	}
@@ -138,6 +138,7 @@ final class CCP_Settings {
 						<input type="checkbox" name="<?php echo esc_attr( self::OPTION_NAME ); ?>[slider_statuses][]" value="proximamente" <?php checked( in_array( 'proximamente', $settings['slider_statuses'], true ) ); ?>>
 						<?php esc_html_e( 'Próximamente', 'capital-cultural-programacion' ); ?>
 					</label>
+					<span class="description"><?php esc_html_e( 'Por defecto se muestran activas y próximamente. Desmarcá una opción si querés dejar afuera ese estado.', 'capital-cultural-programacion' ); ?></span>
 				</fieldset>
 				<p class="ccp-admin-field">
 					<label for="ccp-slider-title"><?php esc_html_e( 'Título por defecto', 'capital-cultural-programacion' ); ?></label>

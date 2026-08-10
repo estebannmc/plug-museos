@@ -60,6 +60,15 @@ final class CCP_Meta_Boxes {
 		);
 
 		add_meta_box(
+			'ccp-encuadre-imagen',
+			__( 'Encuadre de imagen', 'capital-cultural-programacion' ),
+			array( $this, 'render_image_focus_box' ),
+			CCP_Post_Type::POST_TYPE,
+			'side',
+			'default'
+		);
+
+		add_meta_box(
 			'ccp-ayuda-shortcodes-box',
 			__( 'Ayuda y shortcodes', 'capital-cultural-programacion' ),
 			array( $this, 'render_help_box' ),
@@ -187,6 +196,45 @@ final class CCP_Meta_Boxes {
 	}
 
 	/**
+	 * Renders the image focus controls.
+	 *
+	 * @param \WP_Post $post Post object.
+	 */
+	public function render_image_focus_box( \WP_Post $post ): void {
+		$focus_x = self::get_image_focus_axis( $post->ID, '_ccp_image_focus_x' );
+		$focus_y = self::get_image_focus_axis( $post->ID, '_ccp_image_focus_y' );
+		$style   = self::image_position_style( $post->ID );
+		$image   = get_the_post_thumbnail(
+			$post->ID,
+			'medium_large',
+			array(
+				'class' => 'ccp-admin-focus__image',
+				'style' => $style,
+			)
+		);
+		?>
+		<div class="ccp-admin-focus" data-ccp-focus-preview>
+			<div class="ccp-admin-focus__preview">
+				<?php if ( $image ) : ?>
+					<?php echo $image; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+				<?php else : ?>
+					<div class="ccp-admin-focus__placeholder"><?php esc_html_e( 'Sin imagen destacada', 'capital-cultural-programacion' ); ?></div>
+				<?php endif; ?>
+			</div>
+			<p class="ccp-admin-field">
+				<label for="ccp-image-focus-x"><?php esc_html_e( 'Foco horizontal', 'capital-cultural-programacion' ); ?></label>
+				<input id="ccp-image-focus-x" type="range" name="_ccp_image_focus_x" min="0" max="100" step="1" value="<?php echo esc_attr( (string) $focus_x ); ?>" data-ccp-focus-x>
+			</p>
+			<p class="ccp-admin-field">
+				<label for="ccp-image-focus-y"><?php esc_html_e( 'Foco vertical', 'capital-cultural-programacion' ); ?></label>
+				<input id="ccp-image-focus-y" type="range" name="_ccp_image_focus_y" min="0" max="100" step="1" value="<?php echo esc_attr( (string) $focus_y ); ?>" data-ccp-focus-y>
+			</p>
+			<p class="description"><?php esc_html_e( 'Mové el foco para mejorar el recorte en cards, slider y modal sin modificar la imagen original.', 'capital-cultural-programacion' ); ?></p>
+		</div>
+		<?php
+	}
+
+	/**
 	 * Renders the shortcodes help metabox.
 	 */
 	public function render_help_box(): void {
@@ -222,6 +270,7 @@ final class CCP_Meta_Boxes {
 		update_post_meta( $post_id, '_ccp_destacada', isset( $_POST['_ccp_destacada'] ) ? '1' : '' ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		update_post_meta( $post_id, '_ccp_estado_manual', $this->posted_status() );
 		$this->save_parent_show( $post_id );
+		$this->save_image_focus( $post_id );
 
 		$this->save_single_term( $post_id, CCP_Taxonomies::TAX_ESPACIO, 'ccp_espacio' );
 		$this->save_single_term( $post_id, CCP_Taxonomies::TAX_CATEGORIA, 'ccp_categoria' );
@@ -307,7 +356,7 @@ final class CCP_Meta_Boxes {
 			<h2><?php esc_html_e( 'Shortcodes disponibles', 'capital-cultural-programacion' ); ?></h2>
 			<pre class="ccp-admin-shortcodes"><?php echo esc_html( implode( "\n", self::shortcode_examples() ) ); ?></pre>
 			<h2><?php esc_html_e( 'Atributos compatibles', 'capital-cultural-programacion' ); ?></h2>
-			<pre class="ccp-admin-shortcodes"><?php echo esc_html( "cantidad=\"-1\"\ncolumnas=\"5\"\ncategoria=\"muestra\"\ncategorias=\"muestra,taller\"\nmostrar_extracto=\"si\"\ntitulo=\"Muestras activas\"\ntexto_vacio=\"No hay propuestas cargadas para este espacio.\"" ); ?></pre>
+			<pre class="ccp-admin-shortcodes"><?php echo esc_html( "cantidad=\"-1\"\ncolumnas=\"5\"\ncategoria=\"muestra\"\ncategorias=\"muestra,taller\"\nestados=\"activa,proximamente\"\nmostrar_extracto=\"si\"\ntitulo=\"Muestras activas\"\nmovimiento=\"si\"\nvelocidad=\"4500\"\npausar_hover=\"si\"\ntexto_vacio=\"No hay propuestas cargadas para este espacio.\"" ); ?></pre>
 			<h2><?php esc_html_e( 'Ejemplo combinado', 'capital-cultural-programacion' ); ?></h2>
 			<pre class="ccp-admin-shortcodes"><?php echo esc_html( '[sorjosefa cantidad="10" columnas="5" mostrar_extracto="no" texto_vacio="Próximamente se publicarán nuevas propuestas."]' ); ?></pre>
 			<h2><?php esc_html_e( 'Slider para inicio', 'capital-cultural-programacion' ); ?></h2>
@@ -483,6 +532,54 @@ final class CCP_Meta_Boxes {
 		}
 
 		delete_post_meta( $post_id, '_ccp_muestra_principal' );
+	}
+
+	/**
+	 * Saves the non-destructive image focus.
+	 *
+	 * @param int $post_id Proposal ID.
+	 */
+	private function save_image_focus( int $post_id ): void {
+		update_post_meta( $post_id, '_ccp_image_focus_x', $this->posted_image_focus_axis( '_ccp_image_focus_x' ) );
+		update_post_meta( $post_id, '_ccp_image_focus_y', $this->posted_image_focus_axis( '_ccp_image_focus_y' ) );
+	}
+
+	/**
+	 * Reads an image focus axis from POST.
+	 *
+	 * @param string $field Field name.
+	 */
+	private function posted_image_focus_axis( string $field ): int {
+		$value = isset( $_POST[ $field ] ) ? absint( $_POST[ $field ] ) : 50; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+
+		return max( 0, min( 100, $value ) );
+	}
+
+	/**
+	 * Returns a sanitized image focus axis.
+	 *
+	 * @param int    $post_id Post ID.
+	 * @param string $field   Meta field.
+	 */
+	public static function get_image_focus_axis( int $post_id, string $field ): int {
+		$value = get_post_meta( $post_id, $field, true );
+		if ( '' === $value ) {
+			return 50;
+		}
+
+		return max( 0, min( 100, absint( $value ) ) );
+	}
+
+	/**
+	 * Returns the inline object-position style for proposal images.
+	 *
+	 * @param int $post_id Post ID.
+	 */
+	public static function image_position_style( int $post_id ): string {
+		$x = self::get_image_focus_axis( $post_id, '_ccp_image_focus_x' );
+		$y = self::get_image_focus_axis( $post_id, '_ccp_image_focus_y' );
+
+		return sprintf( 'object-position: %1$d%% %2$d%%;', $x, $y );
 	}
 
 	/**

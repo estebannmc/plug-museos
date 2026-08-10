@@ -4,7 +4,6 @@
 	var activeModal = null;
 	var activeDialog = null;
 	var lastTrigger = null;
-	var lastInputWasKeyboard = false;
 	var focusableSelector = [
 		'a[href]',
 		'button:not([disabled])',
@@ -49,10 +48,8 @@
 		activeModal.hidden = true;
 		document.body.classList.remove('ccp-modal-open');
 
-		if (restoreFocus !== false && lastInputWasKeyboard && lastTrigger && typeof lastTrigger.focus === 'function') {
+		if (restoreFocus !== false && lastTrigger && typeof lastTrigger.focus === 'function') {
 			lastTrigger.focus({ preventScroll: true });
-		} else if (lastTrigger && typeof lastTrigger.blur === 'function') {
-			lastTrigger.blur();
 		}
 
 		activeModal = null;
@@ -104,10 +101,6 @@
 		});
 	}
 
-	document.addEventListener('pointerdown', function () {
-		lastInputWasKeyboard = false;
-	}, true);
-
 	document.addEventListener('click', function (event) {
 		var trigger = event.target.closest('[data-ccp-modal-target]');
 		if (trigger) {
@@ -137,8 +130,6 @@
 	});
 
 	document.addEventListener('keydown', function (event) {
-		lastInputWasKeyboard = true;
-
 		if (!activeModal) {
 			return;
 		}

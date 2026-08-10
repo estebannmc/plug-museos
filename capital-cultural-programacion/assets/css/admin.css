@@ -68,11 +68,3 @@
 .ccp-help-page h2 {
 	margin-top: 24px;
 }
-
-.ccp-settings-page .ccp-admin-fields {
-	max-width: 620px;
-	padding: 18px;
-	background: #FFFFFF;
-	border: 1px solid #D9DEE1;
-	border-radius: 4px;
-}

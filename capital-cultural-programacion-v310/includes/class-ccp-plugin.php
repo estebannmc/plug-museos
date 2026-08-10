@@ -39,6 +39,7 @@ final class CCP_Plugin {
 	public function init(): void {
 		add_action( 'plugins_loaded', array( $this, 'load_textdomain' ) );
 
+		( new CCP_Settings() )->init();
 		( new CCP_Post_Type() )->init();
 		( new CCP_Taxonomies() )->init();
 		( new CCP_Meta_Boxes() )->init();
@@ -65,6 +66,7 @@ final class CCP_Plugin {
 		( new CCP_Post_Type() )->register();
 		( new CCP_Taxonomies() )->register();
 		CCP_Taxonomies::create_initial_terms();
+		update_option( 'ccp_version', CCP_VERSION );
 		flush_rewrite_rules();
 	}
 }
