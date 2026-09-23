@@ -10,8 +10,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 $slider_id = 'ccp-slider-' . absint( $instance );
+$autoplay  = ! empty( $autoplay );
+$interval  = isset( $interval ) ? max( 2000, absint( $interval ) ) : 4500;
+$pause_hover = ! empty( $pause_hover );
 ?>
-<section id="<?php echo esc_attr( $slider_id ); ?>" class="ccp-programacion ccp-slider" data-ccp-slider>
+<section
+	id="<?php echo esc_attr( $slider_id ); ?>"
+	class="ccp-programacion ccp-slider"
+	data-ccp-slider
+	data-ccp-autoplay="<?php echo esc_attr( $autoplay ? '1' : '0' ); ?>"
+	data-ccp-interval="<?php echo esc_attr( (string) $interval ); ?>"
+	data-ccp-pause-hover="<?php echo esc_attr( $pause_hover ? '1' : '0' ); ?>"
+>
 	<div class="ccp-slider__header">
 		<?php if ( '' !== $title ) : ?>
 			<h2 class="ccp-slider__title"><?php echo esc_html( $title ); ?></h2>

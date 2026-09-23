@@ -6,6 +6,7 @@
  */
 
 use CapitalCultural\Programacion\CCP_Date_Formatter;
+use CapitalCultural\Programacion\CCP_Meta_Boxes;
 use CapitalCultural\Programacion\CCP_Status;
 use CapitalCultural\Programacion\CCP_Taxonomies;
 
@@ -28,11 +29,14 @@ $title_id     = $modal_id . '-title';
 $content      = apply_filters( 'the_content', $post->post_content );
 $category_name = $category ? $category->name : '';
 $category_tag = $category_name && function_exists( 'mb_strtoupper' ) ? mb_strtoupper( $category_name, 'UTF-8' ) : strtoupper( $category_name );
+$image_style   = CCP_Meta_Boxes::image_position_style( $post_id );
 $image        = get_the_post_thumbnail(
 	$post_id,
-	'large',
+	'full',
 	array(
 		'class'    => 'ccp-modal__image',
+		'style'    => $image_style,
+		'sizes'    => '(max-width: 900px) calc(100vw - 24px), 44vw',
 		'loading'  => 'lazy',
 		'decoding' => 'async',
 	)
@@ -48,7 +52,7 @@ $image        = get_the_post_thumbnail(
 			<?php if ( $image ) : ?>
 				<?php echo $image; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 			<?php else : ?>
-				<div class="ccp-modal__placeholder" role="img" aria-label="<?php echo esc_attr( get_the_title( $post_id ) ); ?>">
+				<div class="ccp-modal__placeholder" role="img" aria-label="<?php echo esc_attr( get_the_title( $post_id ) ); ?>" style="<?php echo esc_attr( $image_style ); ?>">
 					<span><?php esc_html_e( 'Capital Cultural', 'capital-cultural-programacion' ); ?></span>
 				</div>
 			<?php endif; ?>

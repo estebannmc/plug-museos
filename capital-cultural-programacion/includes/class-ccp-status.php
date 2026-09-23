@@ -38,7 +38,7 @@ final class CCP_Status {
 				'order' => 10,
 			),
 			'ya-sucedio'   => array(
-				'label' => __( 'YA SUCEDIÓ', 'capital-cultural-programacion' ),
+				'label' => __( 'FINALIZADA', 'capital-cultural-programacion' ),
 				'key'   => 'ya-sucedio',
 				'order' => 60,
 			),
@@ -76,6 +76,9 @@ final class CCP_Status {
 
 		$start = (string) get_post_meta( $post_id, '_ccp_fecha_inicio', true );
 		$end   = (string) get_post_meta( $post_id, '_ccp_fecha_fin', true );
+		if ( '' === $end && has_term( 'actividad', CCP_Taxonomies::TAX_CATEGORIA, $post_id ) ) {
+			$end = $start;
+		}
 
 		if ( ! CCP_Date_Formatter::is_valid_date( $start ) ) {
 			return $options['ya-sucedio'];
@@ -103,6 +106,9 @@ final class CCP_Status {
 	public static function sort_date( int $post_id, string $status_key ): string {
 		$start = (string) get_post_meta( $post_id, '_ccp_fecha_inicio', true );
 		$end   = (string) get_post_meta( $post_id, '_ccp_fecha_fin', true );
+		if ( '' === $end && has_term( 'actividad', CCP_Taxonomies::TAX_CATEGORIA, $post_id ) ) {
+			$end = $start;
+		}
 
 		if ( 'ya-sucedio' === $status_key && CCP_Date_Formatter::is_valid_date( $end ) ) {
 			return $end;
@@ -146,6 +152,113 @@ final class CCP_Status {
 			}
 		);
 
-		return $posts;
+		return self::group_posts_by_parent_show( $posts );
+	}
+
+	/**
+	 * Places related activities immediately before their parent show.
+	 *
+	 * An explicit relation takes priority. As a fallback, a one-day activity is
+	 * associated with a show in the same space when its date falls within the
+	 * show's start and end dates.
+	 *
+	 * @param \WP_Post[] $posts Already sorted posts.
+	 * @return \WP_Post[]
+	 */
+	private static function group_posts_by_parent_show( array $posts ): array {
+		$posts_by_id = array();
+		$shows       = array();
+		$show_ids    = array();
+
+		foreach ( $posts as $post ) {
+			$posts_by_id[ $post->ID ] = $post;
+			if ( has_term( 'muestra', CCP_Taxonomies::TAX_CATEGORIA, $post ) ) {
+				$shows[]              = $post;
+				$show_ids[ $post->ID ] = true;
+			}
+		}
+
+		$children = array();
+		foreach ( $posts as $post ) {
+			if ( isset( $show_ids[ $post->ID ] ) ) {
+				continue;
+			}
+
+			$parent_id = absint( get_post_meta( $post->ID, '_ccp_muestra_principal', true ) );
+			if ( ! isset( $posts_by_id[ $parent_id ] ) || ! has_term( 'muestra', CCP_Taxonomies::TAX_CATEGORIA, $parent_id ) ) {
+				$parent_id = self::infer_parent_show( $post, $shows );
+			}
+
+			if ( $parent_id ) {
+				$children[ $parent_id ][] = $post;
+			}
+		}
+
+		if ( empty( $children ) ) {
+			return $posts;
+		}
+
+		$child_ids = array();
+		foreach ( $children as $related_posts ) {
+			foreach ( $related_posts as $related_post ) {
+				$child_ids[ $related_post->ID ] = true;
+			}
+		}
+
+		$grouped = array();
+		foreach ( $posts as $post ) {
+			if ( isset( $child_ids[ $post->ID ] ) ) {
+				continue;
+			}
+
+			if ( isset( $children[ $post->ID ] ) ) {
+				array_push( $grouped, ...$children[ $post->ID ] );
+			}
+			$grouped[] = $post;
+		}
+
+		return $grouped;
+	}
+
+	/**
+	 * Finds a matching parent show for a one-day activity.
+	 *
+	 * @param \WP_Post   $post  Activity post.
+	 * @param \WP_Post[] $shows Available shows.
+	 */
+	private static function infer_parent_show( \WP_Post $post, array $shows ): int {
+		if ( ! has_term( 'actividad', CCP_Taxonomies::TAX_CATEGORIA, $post ) ) {
+			return 0;
+		}
+
+		$activity_start = (string) get_post_meta( $post->ID, '_ccp_fecha_inicio', true );
+		$activity_end   = (string) get_post_meta( $post->ID, '_ccp_fecha_fin', true );
+		if ( ! CCP_Date_Formatter::is_valid_date( $activity_start ) || ( '' !== $activity_end && $activity_end !== $activity_start ) ) {
+			return 0;
+		}
+
+		$activity_spaces = wp_get_post_terms( $post->ID, CCP_Taxonomies::TAX_ESPACIO, array( 'fields' => 'ids' ) );
+		if ( is_wp_error( $activity_spaces ) || empty( $activity_spaces ) ) {
+			return 0;
+		}
+
+		foreach ( $shows as $show ) {
+			$show_start = (string) get_post_meta( $show->ID, '_ccp_fecha_inicio', true );
+			$show_end   = (string) get_post_meta( $show->ID, '_ccp_fecha_fin', true );
+			if ( ! CCP_Date_Formatter::is_valid_date( $show_start ) || ! CCP_Date_Formatter::is_valid_date( $show_end ) ) {
+				continue;
+			}
+
+			$show_spaces = wp_get_post_terms( $show->ID, CCP_Taxonomies::TAX_ESPACIO, array( 'fields' => 'ids' ) );
+			if ( is_wp_error( $show_spaces ) || empty( array_intersect( $activity_spaces, $show_spaces ) ) ) {
+				continue;
+			}
+
+			if ( $activity_start >= $show_start && $activity_start <= $show_end ) {
+				return $show->ID;
+			}
+		}
+
+		return 0;
 	}
 }

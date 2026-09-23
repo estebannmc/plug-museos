@@ -39,17 +39,75 @@ final class CCP_Shortcodes {
 			);
 		}
 
-		foreach ( self::aliases() as $shortcode => $space_slug ) {
+		// Registered late on 'init' (after taxonomy registration) so every
+		// cultural space, including ones created from the admin UI, gets a
+		// working shortcode alias without editing PHP.
+		add_action( 'init', array( $this, 'register_space_aliases' ), 20 );
+	}
+
+	/**
+	 * Registers a shortcode alias for every existing cultural space.
+	 *
+	 * Known spaces keep their historic shortcode name (from aliases()).
+	 * Any space created afterwards from Programación de Museos > Espacios
+	 * culturales automatically gets an alias derived from its slug, with
+	 * no code changes required.
+	 */
+	public function register_space_aliases(): void {
+		$slug_to_tag = array_flip( self::aliases() );
+
+		foreach ( $this->get_space_slugs() as $slug ) {
+			$tag = $slug_to_tag[ $slug ] ?? $this->slug_to_shortcode_tag( $slug );
+
+			if ( '' === $tag || shortcode_exists( $tag ) ) {
+				continue;
+			}
+
 			add_shortcode(
-				$shortcode,
-				function ( $atts = array() ) use ( $space_slug ) {
+				$tag,
+				function ( $atts = array() ) use ( $slug ) {
 					$atts            = is_array( $atts ) ? $atts : array();
-					$atts['espacio'] = $space_slug;
+					$atts['espacio'] = $slug;
 
 					return $this->render_generic( $atts );
 				}
 			);
 		}
+	}
+
+	/**
+	 * Returns the slugs of every registered cultural space.
+	 *
+	 * @return string[]
+	 */
+	private function get_space_slugs(): array {
+		if ( ! taxonomy_exists( CCP_Taxonomies::TAX_ESPACIO ) ) {
+			return array();
+		}
+
+		$terms = get_terms(
+			array(
+				'taxonomy'   => CCP_Taxonomies::TAX_ESPACIO,
+				'hide_empty' => false,
+				'fields'     => 'slugs',
+			)
+		);
+
+		if ( is_wp_error( $terms ) || empty( $terms ) ) {
+			return array();
+		}
+
+		return $terms;
+	}
+
+	/**
+	 * Converts a space slug into a shortcode tag by stripping hyphens,
+	 * e.g. "museo-de-la-ciudad" becomes "museodelaciudad".
+	 *
+	 * @param string $slug Space slug.
+	 */
+	private function slug_to_shortcode_tag( string $slug ): string {
+		return sanitize_key( str_replace( '-', '', $slug ) );
 	}
 
 	/**
@@ -161,15 +219,23 @@ final class CCP_Shortcodes {
 		string $default_empty,
 		?array $forced_categories = null
 	): string {
+		$settings           = CCP_Settings::get();
+		$default_categories = null !== $forced_categories ? '' : implode( ',', $settings['slider_categories'] );
+		$default_statuses   = implode( ',', $settings['slider_statuses'] );
+		$default_title      = '' !== $settings['slider_title'] ? (string) $settings['slider_title'] : $default_title;
 		$atts = shortcode_atts(
 			array(
 				'espacio'         => '',
-				'cantidad'        => '-1',
+				'cantidad'        => (string) $settings['slider_limit'],
 				'categoria'       => '',
-				'categorias'      => '',
+				'categorias'      => $default_categories,
+				'estados'         => $default_statuses,
 				'mostrar_extracto' => 'si',
 				'titulo'          => $default_title,
 				'texto_vacio'     => $default_empty,
+				'movimiento'      => $settings['slider_autoplay'] ? 'si' : 'no',
+				'velocidad'       => (string) $settings['slider_interval'],
+				'pausar_hover'    => $settings['slider_pause_hover'] ? 'si' : 'no',
 			),
 			$atts,
 			$shortcode
@@ -183,6 +249,10 @@ final class CCP_Shortcodes {
 		$categories   = null !== $forced_categories
 			? $this->sanitize_category_slugs( implode( ',', $forced_categories ) )
 			: $this->sanitize_category_slugs( (string) $atts['categorias'] . ',' . (string) $atts['categoria'] );
+		$statuses     = $this->sanitize_status_slugs( (string) $atts['estados'] );
+		$autoplay     = $this->sanitize_yes_no( (string) $atts['movimiento'] );
+		$interval     = max( 2000, min( 15000, absint( $atts['velocidad'] ) ) );
+		$pause_hover  = $this->sanitize_yes_no( (string) $atts['pausar_hover'] );
 
 		if ( '' !== $space_slug ) {
 			$term = get_term_by( 'slug', $space_slug, CCP_Taxonomies::TAX_ESPACIO );
@@ -212,7 +282,7 @@ final class CCP_Shortcodes {
 
 		CCP_Assets::enqueue_frontend();
 
-		$posts = $this->get_active_posts( $space_slug, $categories );
+		$posts = $this->get_active_posts( $space_slug, $categories, $statuses );
 		$posts = CCP_Status::sort_posts( $posts );
 
 		if ( $limit > -1 ) {
@@ -238,6 +308,9 @@ final class CCP_Shortcodes {
 				'show_excerpt' => $show_excerpt,
 				'instance'     => $slider_instance,
 				'title'        => $title,
+				'autoplay'     => $autoplay,
+				'interval'     => $interval,
+				'pause_hover'  => $pause_hover,
 			)
 		);
 	}
@@ -352,7 +425,7 @@ final class CCP_Shortcodes {
 	 * @param string[] $category_slugs Optional category slugs.
 	 * @return \WP_Post[]
 	 */
-	private function get_active_posts( string $space_slug = '', array $category_slugs = array() ): array {
+	private function get_active_posts( string $space_slug = '', array $category_slugs = array(), array $status_slugs = array( 'activa' ) ): array {
 		$tax_query = array();
 
 		if ( ! empty( $category_slugs ) ) {
@@ -393,10 +466,10 @@ final class CCP_Shortcodes {
 		return array_values(
 			array_filter(
 				$query->posts,
-				static function ( \WP_Post $post ): bool {
+				static function ( \WP_Post $post ) use ( $status_slugs ): bool {
 					$status = CCP_Status::get_status( $post->ID );
 
-					return 'activa' === $status['key'];
+					return in_array( $status['key'], $status_slugs, true );
 				}
 			)
 		);
@@ -418,6 +491,28 @@ final class CCP_Shortcodes {
 		);
 
 		return array_values( array_unique( $slugs ) );
+	}
+
+	/**
+	 * Sanitizes comma-separated status slugs for active sliders.
+	 *
+	 * @param string $value Raw status attribute.
+	 * @return string[]
+	 */
+	private function sanitize_status_slugs( string $value ): array {
+		$slugs = array_map( 'sanitize_key', explode( ',', $value ) );
+		$slugs = array_values( array_intersect( $slugs, array( 'activa', 'proximamente' ) ) );
+
+		return empty( $slugs ) ? array( 'activa' ) : array_values( array_unique( $slugs ) );
+	}
+
+	/**
+	 * Sanitizes Spanish yes/no shortcode attributes.
+	 *
+	 * @param string $value Raw value.
+	 */
+	private function sanitize_yes_no( string $value ): bool {
+		return in_array( strtolower( sanitize_text_field( $value ) ), array( '1', 'si', 'sí', 'true', 'yes' ), true );
 	}
 
 	/**

@@ -14,9 +14,15 @@
 	font-weight: 600;
 }
 
+.ccp-admin-field legend {
+	margin-bottom: 6px;
+	font-weight: 600;
+}
+
 .ccp-admin-field input[type="text"],
 .ccp-admin-field input[type="url"],
 .ccp-admin-field input[type="date"],
+.ccp-admin-field input[type="number"],
 .ccp-admin-field select {
 	width: 100%;
 	max-width: 520px;
@@ -24,6 +30,12 @@
 
 .ccp-admin-field--inline {
 	display: block;
+}
+
+.ccp-admin-check {
+	display: block;
+	margin: 0 0 6px;
+	font-weight: 400;
 }
 
 .ccp-required {
@@ -67,4 +79,50 @@
 
 .ccp-help-page h2 {
 	margin-top: 24px;
+}
+
+.ccp-admin-focus {
+	display: grid;
+	gap: 12px;
+}
+
+.ccp-admin-focus__preview {
+	position: relative;
+	width: 100%;
+	overflow: hidden;
+	aspect-ratio: 16 / 9;
+	background: #F8F5F0;
+	border: 1px solid #D9DEE1;
+	border-radius: 4px;
+}
+
+.ccp-admin-focus__image {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.ccp-admin-focus__placeholder {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	height: 100%;
+	padding: 12px;
+	box-sizing: border-box;
+	color: #33434B;
+	text-align: center;
+}
+
+.ccp-admin-focus input[type="range"] {
+	width: 100%;
+}
+
+.ccp-settings-page .ccp-admin-fields {
+	max-width: 620px;
+	padding: 18px;
+	background: #FFFFFF;
+	border: 1px solid #D9DEE1;
+	border-radius: 4px;
 }

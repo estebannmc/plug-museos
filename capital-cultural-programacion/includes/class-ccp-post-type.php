@@ -22,12 +22,42 @@ final class CCP_Post_Type {
 	 */
 	public function init(): void {
 		add_action( 'init', array( $this, 'register' ) );
+		add_action( 'admin_init', array( $this, 'disable_elementor_support' ) );
+		add_filter( 'use_block_editor_for_post_type', array( $this, 'disable_block_editor' ), 10, 2 );
 		add_filter( 'manage_' . self::POST_TYPE . '_posts_columns', array( $this, 'columns' ) );
 		add_action( 'manage_' . self::POST_TYPE . '_posts_custom_column', array( $this, 'render_column' ), 10, 2 );
 		add_filter( 'manage_edit-' . self::POST_TYPE . '_sortable_columns', array( $this, 'sortable_columns' ) );
 		add_action( 'pre_get_posts', array( $this, 'sort_admin_columns' ) );
 		add_action( 'restrict_manage_posts', array( $this, 'admin_filters' ) );
 		add_filter( 'parse_query', array( $this, 'apply_admin_filters' ) );
+	}
+
+	/**
+	 * Uses the classic WordPress editor for proposals.
+	 *
+	 * @param bool   $use_block_editor Whether the block editor should be used.
+	 * @param string $post_type        Current post type.
+	 * @return bool
+	 */
+	public function disable_block_editor( bool $use_block_editor, string $post_type ): bool {
+		if ( self::POST_TYPE === $post_type ) {
+			return false;
+		}
+
+		return $use_block_editor;
+	}
+
+	/**
+	 * Removes proposals from Elementor's enabled post types.
+	 */
+	public function disable_elementor_support(): void {
+		$supported_post_types = get_option( 'elementor_cpt_support', array() );
+		if ( ! is_array( $supported_post_types ) || ! in_array( self::POST_TYPE, $supported_post_types, true ) ) {
+			return;
+		}
+
+		$supported_post_types = array_values( array_diff( $supported_post_types, array( self::POST_TYPE ) ) );
+		update_option( 'elementor_cpt_support', $supported_post_types );
 	}
 
 	/**
